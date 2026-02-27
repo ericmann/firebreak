@@ -572,7 +572,7 @@ Respond with ONLY a JSON object in this exact format:
 Do not include any other text.
 ```
 
-Use `claude-sonnet-4-5-20250514` for classification (fast, cheap, accurate for this task). Reserve Opus for the actual LLM responses if needed.
+Use `claude-sonnet-4-6` for classification (fast, cheap, accurate for this task). Reserve Opus for the actual LLM responses if needed.
 
 **Claude Code Prompt:**
 > Implement the IntentClassifier class in src/firebreak/classifier.py per SPEC.md. It makes a single Claude API call to classify prompts into policy-defined intent categories. Include a ClassifierCache that supports pre-loading cached results from a JSON file for demo reliability. The classifier must handle API errors gracefully by returning a BLOCK-triggering fallback. Write tests with mocked API responses. Also generate a cache file (demo/classifier_cache.json) with pre-computed classifications for all 6 demo scenarios.
