@@ -112,7 +112,7 @@ Validation: Raise `ValueError` if YAML is missing required fields (policy.name, 
 
 **Class: `IntentClassifier`**
 
-- `__init__(self, categories: list[str], cache: ClassifierCache | None = None, model: str = "claude-sonnet-4-5-20250514")`
+- `__init__(self, categories: list[str], cache: ClassifierCache | None = None, model: str = "claude-sonnet-4-6")`
 - `classify(self, prompt: str) -> ClassificationResult`
   - Check cache first. If hit, return cached result.
   - Build system prompt listing the valid categories. Instruct the model to respond with ONLY a JSON object: `{"category": "...", "confidence": 0.XX}`
@@ -148,7 +148,7 @@ Simple. No persistence needed for the MVP.
 
 **Class: `FirebreakInterceptor`**
 
-- `__init__(self, policy_engine: PolicyEngine, classifier: IntentClassifier, audit_log: AuditLog, llm_model: str = "claude-sonnet-4-5-20250514")`
+- `__init__(self, policy_engine: PolicyEngine, classifier: IntentClassifier, audit_log: AuditLog, llm_model: str = "claude-sonnet-4-6")`
 - `self.callbacks: dict[str, list[Callable]]` — event callback registry
 - `on(self, event: str, callback: Callable)` — register a callback for an event
 - `_emit(self, event: str, data: Any)` — fire all callbacks for an event
