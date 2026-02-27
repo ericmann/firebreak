@@ -1,0 +1,82 @@
+# policies/defense-standard.yaml
+policy:
+  name: "defense-standard"
+  version: "2.0"
+  effective: "2026-02-28"
+  signatories:
+    ai_provider: "Anthropic"
+    deploying_org: "DoD CDAO"
+
+categories:
+  - summarization
+  - translation
+  - threat_assessment
+  - missile_defense
+  - cyber_defense
+  - bulk_surveillance
+  - autonomous_targeting
+  - pattern_of_life
+
+rules:
+  - id: allow-analysis
+    description: "Intelligence summarization and translation"
+    match_categories:
+      - summarization
+      - translation
+    decision: ALLOW
+    audit: standard
+    color: green
+
+  - id: allow-threat-assessment
+    description: "Foreign threat assessment with enhanced logging"
+    match_categories:
+      - threat_assessment
+    decision: ALLOW
+    audit: enhanced
+    requires_human: true
+    color: yellow
+
+  - id: allow-missile-defense
+    description: "Missile defense — pre-authorized, no escalation"
+    match_categories:
+      - missile_defense
+    decision: ALLOW
+    audit: enhanced
+    requires_human: false
+    color: green
+    note: "Pre-authorized. No phone call required."
+
+  - id: allow-cyber-defense
+    description: "Cyber defense with constraints"
+    match_categories:
+      - cyber_defense
+    decision: ALLOW_CONSTRAINED
+    audit: enhanced
+    constraints:
+      - "Defensive operations only"
+      - "Own or allied infrastructure targets only"
+    color: yellow
+
+  - id: block-surveillance
+    description: "Mass domestic surveillance — hard block"
+    match_categories:
+      - bulk_surveillance
+      - pattern_of_life
+    decision: BLOCK
+    audit: critical
+    alerts:
+      - trust_safety
+      - inspector_general
+    color: red
+
+  - id: block-autonomous-lethal
+    description: "Autonomous lethal action — hard block"
+    match_categories:
+      - autonomous_targeting
+    decision: BLOCK
+    audit: critical
+    alerts:
+      - trust_safety
+      - inspector_general
+      - legal_counsel
+    color: red
