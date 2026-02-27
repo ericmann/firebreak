@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <!-- Shield body -->
+  <path d="M80 10 L145 40 L145 85 C145 120 115 148 80 155 C45 148 15 120 15 85 L15 40 Z"
+        fill="#1a1a2e" stroke="#e94560" stroke-width="3"/>
+  <!-- Firebreak line (horizontal gap in flame) -->
+  <rect x="35" y="78" width="90" height="6" rx="3" fill="#1a1a2e"/>
+  <!-- Upper flame -->
+  <path d="M80 30 C90 50 105 55 105 72 C105 86 94 90 80 90 C66 90 55 86 55 72 C55 55 70 50 80 30Z"
+        fill="#e94560" opacity="0.9"/>
+  <path d="M80 42 C86 54 95 58 95 69 C95 78 89 82 80 82 C71 82 65 78 65 69 C65 58 74 54 80 42Z"
+        fill="#ff6b6b" opacity="0.9"/>
+  <path d="M80 54 C84 61 88 64 88 69 C88 74 84 76 80 76 C76 76 72 74 72 69 C72 64 76 61 80 54Z"
+        fill="#ffa07a"/>
+  <!-- Lower flame (blocked/extinguished - dimmer) -->
+  <path d="M80 90 C86 98 95 100 95 108 C95 116 89 120 80 120 C71 120 65 116 65 108 C65 100 74 98 80 90Z"
+        fill="#e94560" opacity="0.25"/>
+</svg>
