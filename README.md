@@ -1,14 +1,32 @@
-# Firebreak
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ericmann/firebreak/main/docs/firebreak-icon.svg" alt="Firebreak" width="160" />
+</p>
 
-> Policy-as-code enforcement for LLM API deployments in sensitive environments.
+<h1 align="center">Firebreak</h1>
+
+<p align="center">
+  <strong>Policy-as-code enforcement for LLM API deployments.</strong><br>
+  Pre-negotiated rules. Automatic enforcement. Complete audit trail.
+</p>
+
+<p align="center">
+  <a href="https://github.com/ericmann/firebreak/actions/workflows/ci.yml"><img src="https://github.com/ericmann/firebreak/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white" alt="Python 3.11 | 3.12 | 3.13 | 3.14" />
+  <img src="https://img.shields.io/badge/Claude_API-Anthropic-191919?logo=anthropic&logoColor=white" alt="Claude API" />
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" />
+</p>
 
 ---
 
+## The Problem
+
 The Pentagon says they can't call a CEO during a missile crisis. Anthropic says they can't allow mass surveillance or autonomous kill chains. Both are right — but they're treating an engineering problem as a political argument.
 
-**Firebreak** is a policy enforcement proxy that sits between an LLM consumer and an LLM API endpoint. It intercepts every request, classifies the intent of the prompt, evaluates that intent against a pre-negotiated policy, and either allows, constrains, or blocks the request — automatically, at machine speed, with a complete audit trail.
+## The Solution
 
-Both the AI provider and the deploying organization pre-negotiate the policies. Neither side can unilaterally change them. The system enforces the agreement automatically. No phone calls during missile crises. No silent drift toward surveillance.
+**Firebreak** is a policy enforcement proxy that sits between an LLM consumer and an LLM API endpoint. It intercepts every request, classifies the intent, evaluates it against a pre-negotiated policy, and either allows, constrains, or blocks the request — automatically, at machine speed, with a complete audit trail.
+
+Both sides pre-negotiate the rules. Neither side can unilaterally change them. No phone calls during missile crises. No silent drift toward surveillance.
 
 ## How It Works
 
@@ -34,19 +52,17 @@ sequenceDiagram
 ```
 
 1. **A prompt arrives** — from an analyst, a defense workflow, or an intelligence system.
-2. **Firebreak classifies the intent** using a lightweight LLM call to determine what the prompt is asking for (summarization, threat assessment, surveillance, targeting, etc.).
-3. **Firebreak evaluates the intent against policy** — pre-negotiated YAML rules that define what's allowed (Tier 1), constrained (Tier 2-3), or blocked (Tier 4-5).
+2. **Firebreak classifies the intent** using a lightweight LLM call (summarization, threat assessment, surveillance, targeting, etc.).
+3. **Firebreak evaluates against policy** — pre-negotiated YAML rules defining what's allowed, constrained, or blocked.
 4. **The decision executes automatically:**
-   - **ALLOW** — prompt passes through to the LLM. Standard audit logging.
-   - **ALLOW_CONSTRAINED** — prompt passes through with enhanced logging and operational constraints noted.
-   - **BLOCK** — prompt is rejected. The LLM never sees it. Alerts fire to Trust & Safety, the Inspector General, or legal counsel.
+   - **ALLOW** — prompt passes through. Standard audit logging.
+   - **ALLOW_CONSTRAINED** — prompt passes through with enhanced logging and constraints noted.
+   - **BLOCK** — prompt is rejected. The LLM never sees it. Alerts fire.
 5. **Everything is logged** to an immutable audit trail.
-
-Missile defense goes through at machine speed, pre-authorized, no phone call needed. Domestic mass surveillance is blocked automatically, no negotiation needed. Both outcomes are determined by pre-negotiated policy, enforced by infrastructure.
 
 ## Policy Format
 
-Policies are YAML files — version-controlled, testable, deployable code instead of PDF documents:
+Policies are YAML files — version-controlled, testable, deployable:
 
 ```yaml
 rules:
@@ -55,7 +71,6 @@ rules:
     match_categories: [missile_defense]
     decision: ALLOW
     audit: enhanced
-    requires_human: false
     note: "Pre-authorized. No phone call required."
 
   - id: block-surveillance
@@ -75,7 +90,7 @@ rules:
 
 ## Demo
 
-The MVP includes a Rich TUI dashboard that processes six scenarios in real time — from routine intelligence summarization (green) through missile defense (green, pre-authorized) to domestic surveillance and autonomous targeting (red, hard blocked with alerts).
+The MVP includes a Rich TUI dashboard processing six scenarios in real time — from routine intelligence summarization (green) through missile defense (green, pre-authorized) to domestic surveillance and autonomous targeting (red, hard blocked with alerts).
 
 ```
 ┌─ Firebreak Policy Monitor ─────────────────────────────────────────┐
@@ -100,30 +115,24 @@ The MVP includes a Rich TUI dashboard that processes six scenarios in real time 
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Setup
+### Quick Start
 
 ```bash
-# Clone and install
 git clone https://github.com/ericmann/firebreak.git
 cd firebreak
 pip install -e .
 
-# Run the demo
+# Run the demo (requires ANTHROPIC_API_KEY)
 firebreak-demo
-
-# Or run directly
-python -m firebreak.demo
 ```
-
-Requires Python 3.11+ and an `ANTHROPIC_API_KEY` environment variable.
 
 ### CLI Options
 
 ```
-firebreak-demo              # Full demo with cached classifications
-firebreak-demo --no-cache   # Force live API classification calls
-firebreak-demo --fast        # Reduced pauses for testing
-firebreak-demo --policy PATH # Custom policy file
+firebreak-demo                  # Full demo with cached classifications
+firebreak-demo --no-cache       # Force live API classification calls
+firebreak-demo --fast           # Reduced pauses for testing
+firebreak-demo --policy PATH    # Custom policy file
 firebreak-demo --scenarios PATH # Custom scenario file
 ```
 
@@ -144,30 +153,29 @@ graph BT
 ```
 
 **Key design decisions:**
-- **Fail closed.** If anything unexpected happens during classification or evaluation, the decision is BLOCK. Unknown intents are blocked by default.
-- **Policy lives in YAML, not code.** The Python code reads and evaluates — it does not define the rules.
-- **Classification is cached.** Demo reliability is ensured by pre-cached classifications for all scenarios, with live API calls available via `--no-cache`.
+- **Fail closed.** Unknown intents are blocked by default. Errors result in BLOCK, never ALLOW.
+- **Policy lives in YAML, not code.** Python reads and evaluates — it does not define the rules.
+- **Classification is cached.** Pre-cached results for demo reliability, live API via `--no-cache`.
 
 ## Production Vision
 
-The hackathon MVP demonstrates the concept. In production, Firebreak would look like this:
+The hackathon MVP demonstrates the concept. In production:
 
-- **OPA/Rego policy engine** — Replace the simplified YAML matcher with [Open Policy Agent](https://www.openpolicyagent.org/) and Rego policies. Same pattern used by Kubernetes Gatekeeper for millions of API evaluations per day.
-- **Kubernetes sidecar proxy** — Deploy as an Envoy filter or standalone service mesh sidecar alongside any LLM-consuming pod. Same architecture as service mesh admission control.
-- **Cryptographic dual-authorization** — Policy changes require threshold signatures from both the AI provider and the deploying organization. Neither side can unilaterally modify the rules.
-- **Response inspection** — Evaluate LLM responses against policy, not just prompts.
-- **Circuit breaker** — Anomaly detection on usage patterns: volume spikes, category escalation, session drift toward restricted categories.
-- **Multi-model support** — Abstract the LLM client to support Claude, GPT, Gemini, and any future model API.
-- **Hash-chained audit log** — Cryptographically chained append-only log with tamper-evidence verification.
-- **Compliance dashboard** — Web UI for policy administrators to review audit trails, generate compliance reports, and manage policy versions.
+| Layer | MVP | Production |
+|-------|-----|------------|
+| Policy engine | YAML matcher | [OPA](https://www.openpolicyagent.org/) + Rego |
+| Deployment | In-process Python | Kubernetes sidecar proxy (Envoy filter) |
+| Policy auth | Trust-based | Cryptographic dual-signatures |
+| Inspection | Prompts only | Prompts + responses |
+| Safety | Static rules | Circuit breaker + anomaly detection |
+| Models | Claude only | Claude, GPT, Gemini, etc. |
+| Audit | In-memory list | Hash-chained tamper-evident log |
 
 ## Why This Matters
 
-The debate between defense agencies and AI providers is currently framed as political — unrestricted access vs. total refusal. Firebreak reframes it as an engineering problem with an infrastructure solution.
-
 The same pattern already exists: Kubernetes admission controllers evaluate API requests against policy at machine speed, at massive scale, every day. Firebreak applies that proven pattern to a new kind of API — one where the stakes include both national security and civil liberties.
 
-The hard part isn't the technology. It's getting both sides to agree on the policy. Firebreak's job is to make sure that once they do agree, the agreement actually holds.
+The hard part isn't the technology. It's getting both sides to agree on the policy. Firebreak makes sure that once they do, the agreement holds.
 
 ## Author
 
