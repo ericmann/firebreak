@@ -100,50 +100,39 @@ rules:
 
 ## Demo
 
-The MVP includes a Rich TUI dashboard processing seven scenarios in real time — from routine intelligence summarization (green) through missile defense (green, pre-authorized) and court-authorized surveillance (yellow, constrained with legal alert) to domestic surveillance and autonomous targeting (red, hard blocked with alerts).
+<p align="center">
+  <a href="https://youtu.be/70zQLbZpNds">
+    <img src="https://img.youtube.com/vi/70zQLbZpNds/maxresdefault.jpg" alt="Firebreak Demo" width="720" />
+  </a>
+  <br>
+  <a href="https://youtu.be/70zQLbZpNds"><strong>Watch the full demo on YouTube</strong></a>
+</p>
 
-```
-┌─ Firebreak Policy Monitor ─────────────────────────────────────────┐
-│  ┌─ Active Policy ───────────────────────────────────────────────┐  │
-│  │  defense-standard v2.0                                        │  │
-│  │  Signatories: AI Provider ✓  Deploying Org ✓                  │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│  ┌─ Evaluation History ──────────────────────────────────────────┐  │
-│  │  TIME      DECISION           INTENT              RULE               AUDIT     │  │
-│  │  10:42:01  ● ALLOW              summarization       allow-analysis       STANDARD  │  │
-│  │  10:42:15  ● ALLOW              translation         allow-analysis       STANDARD  │  │
-│  │  10:42:30  ● ALLOW              threat_assessment   allow-threat-assess  ENHANCED  │  │
-│  │  10:43:01  ● ALLOW              missile_defense     allow-missile-def    ENHANCED  │  │
-│  │  10:43:15  ● ALLOW_CONSTRAINED  warranted_surveil   allow-warranted      ENHANCED  │  │
-│  │  10:43:22  ● BLOCK              bulk_surveillance   block-surv           CRITICAL  │  │
-│  │  10:43:45  ● BLOCK              autonomous_target   block-auto-lethal    CRITICAL  │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│  ┌─ Alerts ──────────────────────────────────────────────────────┐  │
-│  │  ⚠ [10:43:22] CRITICAL: block-surveillance triggered          │  │
-│  │    Notified: trust_safety, inspector_general                  │  │
-│  │  ⚠ [10:43:45] CRITICAL: block-autonomous-lethal triggered     │  │
-│  │    Notified: trust_safety, inspector_general, legal_counsel   │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
-```
+Seven scenarios run through the Rich TUI dashboard in real time:
+
+| Scenario | Decision | Rule | What happens |
+|----------|----------|------|-------------|
+| Intelligence summarization | ALLOW | `allow-analysis` | Prompt forwarded, standard audit |
+| Farsi translation | ALLOW | `allow-analysis` | Prompt forwarded, standard audit |
+| Foreign threat assessment | ALLOW | `allow-threat-assessment` | Forwarded with enhanced logging |
+| Missile defense query | ALLOW | `allow-missile-defense` | Pre-authorized, no escalation needed |
+| Court-authorized surveillance | ALLOW_CONSTRAINED | `allow-warranted-analysis` | Forwarded with constraints + legal alert |
+| Mass domestic surveillance | BLOCK | `block-surveillance` | Hard blocked, trust_safety + IG alerted |
+| Autonomous targeting | BLOCK | `block-autonomous-lethal` | Hard blocked, three alert targets notified |
 
 ### Quick Start
 
 ```bash
 git clone https://github.com/ericmann/firebreak.git
 cd firebreak
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e .
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
 
-# Set your Anthropic API key
 export ANTHROPIC_API_KEY="sk-ant-..."
 
-# Run the demo (press Enter to advance between scenarios)
-firebreak-demo
-
-# Run with interactive proxy mode for live prompts
-firebreak-demo --interactive
+firebreak-demo              # press Enter to advance between scenarios
+firebreak-demo --auto       # auto-advance for screen recording
+firebreak-demo --server     # start as OpenAI-compatible proxy
 ```
 
 ### CLI Options
@@ -164,40 +153,30 @@ firebreak-demo --scenarios PATH # Custom scenario file
 
 ### Server Mode
 
-Start Firebreak as a persistent OpenAI-compatible proxy server:
+Run Firebreak as a persistent OpenAI-compatible proxy. The TUI dashboard updates live as HTTP requests flow through the pipeline.
 
 ```bash
-firebreak-demo --server
+firebreak-demo --server              # listens on localhost:8080
+firebreak-demo --server --port 9000  # custom port
 ```
 
-The TUI dashboard runs in the foreground and updates live as requests arrive. The server listens on `http://localhost:8080/v1`.
-
-**Point any OpenAI-compatible client at it:**
+Point any OpenAI-compatible client at `http://localhost:8080/v1`:
 
 ```bash
-# curl
 curl http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{"model": "firebreak-proxy", "messages": [{"role": "user", "content": "Summarize the latest threat briefing"}]}'
-
-# Python openai SDK
-import openai
-client = openai.OpenAI(base_url="http://localhost:8080/v1", api_key="unused")
-client.chat.completions.create(model="firebreak-proxy", messages=[...])
-
-# Cursor / other tools — set the base URL:
-OPENAI_API_BASE=http://localhost:8080/v1
 ```
 
-**Allowed requests** return a standard chat completion response. **Blocked requests** return an OpenAI-format error (HTTP 400, `code: "content_policy_violation"`) with the matched rule ID and description.
-
-**Endpoints:**
+Allowed requests return standard chat completion responses. Blocked requests return an OpenAI error (HTTP 400, `code: "content_policy_violation"`).
 
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/v1/chat/completions` | POST | Proxy endpoint — classify, evaluate, forward or block |
+| `/v1/chat/completions` | POST | Classify, evaluate, forward or block |
 | `/v1/models` | GET | List available models |
 | `/health` | GET | Health check |
+
+> **Connecting Cursor IDE?** See the full [Cursor + ngrok integration guide](docs/cursor-integration.md) for step-by-step setup.
 
 ## Architecture
 
