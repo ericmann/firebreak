@@ -69,6 +69,8 @@ rules:
       - "Valid judicial warrant must be on file"
       - "Scope limited to named subjects in warrant"
       - "Results must be reviewed by legal counsel"
+    alerts:
+      - legal_counsel
     color: yellow
     note: "Court-authorized. Requires warrant verification and legal review."
 

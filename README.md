@@ -56,8 +56,8 @@ sequenceDiagram
 3. **Firebreak evaluates against policy** — pre-negotiated YAML rules defining what's allowed, constrained, or blocked.
 4. **The decision executes automatically:**
    - **ALLOW** — prompt passes through. Standard audit logging.
-   - **ALLOW_CONSTRAINED** — prompt passes through with enhanced logging and constraints noted.
-   - **BLOCK** — prompt is rejected. The LLM never sees it. Alerts fire.
+   - **ALLOW_CONSTRAINED** — prompt passes through with enhanced logging, constraints noted, and informational alerts where configured.
+   - **BLOCK** — prompt is rejected. The LLM never sees it. Critical alerts fire.
 5. **Everything is logged** to an immutable audit trail.
 
 ## Policy Format
@@ -72,6 +72,16 @@ rules:
     decision: ALLOW
     audit: enhanced
     note: "Pre-authorized. No phone call required."
+
+  - id: allow-warranted-analysis
+    description: "Court-authorized surveillance — constrained allow"
+    match_categories: [warranted_surveillance]
+    decision: ALLOW_CONSTRAINED
+    audit: enhanced
+    constraints:
+      - "Valid judicial warrant must be on file"
+      - "Scope limited to named subjects in warrant"
+    alerts: [legal_counsel]
 
   - id: block-surveillance
     description: "Mass domestic surveillance — hard block"
@@ -90,7 +100,7 @@ rules:
 
 ## Demo
 
-The MVP includes a Rich TUI dashboard processing six scenarios in real time — from routine intelligence summarization (green) through missile defense (green, pre-authorized) to domestic surveillance and autonomous targeting (red, hard blocked with alerts).
+The MVP includes a Rich TUI dashboard processing seven scenarios in real time — from routine intelligence summarization (green) through missile defense (green, pre-authorized) and court-authorized surveillance (yellow, constrained with legal alert) to domestic surveillance and autonomous targeting (red, hard blocked with alerts).
 
 ```
 ┌─ Firebreak Policy Monitor ─────────────────────────────────────────┐
@@ -100,11 +110,13 @@ The MVP includes a Rich TUI dashboard processing six scenarios in real time — 
 │  └───────────────────────────────────────────────────────────────┘  │
 │  ┌─ Evaluation History ──────────────────────────────────────────┐  │
 │  │  TIME      DECISION           INTENT              RULE               AUDIT     │  │
-│  │  10:42:01  ● ALLOW            summarization       allow-analysis     STANDARD  │  │
-│  │  10:42:15  ● ALLOW            translation         allow-analysis     STANDARD  │  │
-│  │  10:43:01  ● ALLOW            missile_defense     allow-missile-def  ENHANCED  │  │
-│  │  10:43:22  ● BLOCK            bulk_surveillance   block-surv         CRITICAL  │  │
-│  │  10:43:45  ● BLOCK            autonomous_target   block-auto-lethal  CRITICAL  │  │
+│  │  10:42:01  ● ALLOW              summarization       allow-analysis       STANDARD  │  │
+│  │  10:42:15  ● ALLOW              translation         allow-analysis       STANDARD  │  │
+│  │  10:42:30  ● ALLOW              threat_assessment   allow-threat-assess  ENHANCED  │  │
+│  │  10:43:01  ● ALLOW              missile_defense     allow-missile-def    ENHANCED  │  │
+│  │  10:43:15  ● ALLOW_CONSTRAINED  warranted_surveil   allow-warranted      ENHANCED  │  │
+│  │  10:43:22  ● BLOCK              bulk_surveillance   block-surv           CRITICAL  │  │
+│  │  10:43:45  ● BLOCK              autonomous_target   block-auto-lethal    CRITICAL  │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │  ┌─ Alerts ──────────────────────────────────────────────────────┐  │
 │  │  ⚠ [10:43:22] CRITICAL: block-surveillance triggered          │  │
@@ -137,13 +149,16 @@ firebreak-demo --interactive
 ### CLI Options
 
 ```
-firebreak-demo                  # Full demo, manual advance between scenarios
+firebreak-demo                  # Full demo, manual advance (press Enter)
+firebreak-demo --auto           # Auto-advance with pauses for screen recording
+firebreak-demo --fast           # Auto-advance with short pauses (for testing)
 firebreak-demo --interactive    # Enter live proxy mode after canned scenarios
 firebreak-demo --no-cache       # Force live API classification calls
-firebreak-demo --fast           # Auto-advance with short pauses (for testing)
 firebreak-demo --policy PATH    # Custom policy file
 firebreak-demo --scenarios PATH # Custom scenario file
 ```
+
+> `--auto` and `--fast` are mutually exclusive. Default mode waits for Enter between scenarios.
 
 ## Architecture
 
