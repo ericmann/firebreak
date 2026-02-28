@@ -173,6 +173,9 @@ class FirebreakDashboard:
                 f"  Intent: [bold]{c.intent_category}[/bold]"
                 f"          Confidence: {c.confidence:.2f}"
             )
+        elif self.current_prompt:
+            parts.append("")
+            parts.append("  [dim italic]Classifying...[/dim italic]")
 
         if self.current_evaluation:
             e = self.current_evaluation
@@ -184,6 +187,8 @@ class FirebreakDashboard:
             )
             if e.note:
                 parts.append(f"  [dim italic]{e.note}[/dim italic]")
+        elif self.current_classification:
+            parts.append("  [dim italic]Evaluating...[/dim italic]")
 
         content = Text.from_markup("\n".join(parts))
         return Panel(
