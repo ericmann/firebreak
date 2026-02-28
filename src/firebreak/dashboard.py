@@ -76,6 +76,8 @@ class FirebreakDashboard:
         Args:
             prompt: The new prompt text being evaluated.
         """
+        for alert in self.alerts:
+            alert["aged"] = True
         self.current_prompt = prompt
         self.current_classification = None
         self.current_evaluation = None
@@ -108,6 +110,7 @@ class FirebreakDashboard:
                 "timestamp": datetime.now(),
                 "target": alert_data["target"],
                 "evaluation": alert_data["evaluation"],
+                "aged": False,
             }
         )
 
@@ -236,11 +239,18 @@ class FirebreakDashboard:
             ts = alert["timestamp"].strftime("%H:%M:%S")
             ev = alert["evaluation"]
             target = alert["target"]
-            parts.append(
-                f"  [red]\u26a0[/red] [{ts}] CRITICAL:"
-                f" {ev.matched_rule_id} triggered"
-                f"  \u2192 {target}"
-            )
+            if alert.get("aged"):
+                parts.append(
+                    f"  [dim]\u26a0 [{ts}] CRITICAL:"
+                    f" {ev.matched_rule_id} triggered"
+                    f"  \u2192 {target}[/dim]"
+                )
+            else:
+                parts.append(
+                    f"  [red]\u26a0[/red] [{ts}] CRITICAL:"
+                    f" {ev.matched_rule_id} triggered"
+                    f"  \u2192 {target}"
+                )
 
         content = Text.from_markup("\n".join(parts))
         return Panel(
