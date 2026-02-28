@@ -21,10 +21,7 @@ DEFAULT_CACHE = "demo/classifier_cache.json"
 
 # Timing constants (seconds)
 STEP_DELAY = 1.5
-SCENARIO_DELAY = 3.0
 FAST_STEP_DELAY = 0.25
-FAST_SCENARIO_DELAY = 0.5
-FINAL_HOLD = 10.0
 
 
 def _parse_args() -> argparse.Namespace:
@@ -44,7 +41,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--fast",
         action="store_true",
-        help="Reduce all pauses for faster demo",
+        help="Auto-advance with short pauses (for testing)",
+    )
+    parser.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Enter interactive proxy mode after scenarios",
     )
     parser.add_argument(
         "--policy",
@@ -89,13 +91,30 @@ def _load_scenarios(path: str) -> list[DemoScenario]:
     return scenarios
 
 
+def _wait_or_auto(console: Console, fast: bool, message: str = "") -> None:
+    """Wait for Enter keypress, or auto-advance in fast mode.
+
+    Args:
+        console: Rich console for output.
+        fast: If True, skip waiting and auto-advance.
+        message: Optional message to display before waiting.
+    """
+    if fast:
+        time.sleep(FAST_STEP_DELAY)
+    else:
+        prompt = message if message else "  Press Enter to continue..."
+        console.print(
+            Text.from_markup(f"  [dim italic]{prompt}[/dim italic]"),
+        )
+        input()
+
+
 def main() -> None:
     """Run the Firebreak demo."""
     args = _parse_args()
     console = Console()
 
     step_delay = FAST_STEP_DELAY if args.fast else STEP_DELAY
-    scenario_delay = FAST_SCENARIO_DELAY if args.fast else SCENARIO_DELAY
 
     # Load policy
     engine = PolicyEngine()
@@ -134,42 +153,77 @@ def main() -> None:
         )
     )
     console.print()
-    time.sleep(step_delay)
 
     with Live(
         dashboard.render(),
         console=console,
         refresh_per_second=4,
-        screen=True,
     ) as live:
         for i, scenario in enumerate(scenarios):
-            # Show narration in the console above the live display
-            live.console.print(
+            # Pause for presenter to narrate
+            live.stop()
+            console.print()
+            console.print(
                 Text.from_markup(
-                    f"\n  [dim]Scenario {i + 1}/{len(scenarios)}:"
-                    f" {scenario.narration}[/dim]"
+                    f"  [bold]Scenario {i + 1}/{len(scenarios)}:[/bold]"
+                    f" {scenario.narration}"
                 )
             )
-            time.sleep(step_delay)
+            _wait_or_auto(console, args.fast, "Press Enter to run scenario...")
+            live.start()
 
-            # Update dashboard with the incoming prompt
+            # Show prompt on dashboard
             dashboard.update_prompt(scenario.prompt)
             live.update(dashboard.render())
             time.sleep(step_delay)
 
             # Run through the interceptor pipeline
-            # (callbacks update dashboard state automatically)
             interceptor.evaluate_request(scenario.prompt)
             live.update(dashboard.render())
 
-            # Pause between scenarios
-            if i < len(scenarios) - 1:
-                time.sleep(scenario_delay)
+        # Interactive proxy mode
+        if args.interactive:
+            live.stop()
+            console.print()
+            console.print(
+                Text.from_markup(
+                    "\n  [bold blue]INTERACTIVE MODE[/bold blue]"
+                    " — Type a prompt to evaluate through the policy proxy."
+                    "\n  [dim]Type 'quit' or 'exit' to end.[/dim]\n"
+                )
+            )
+            live.start()
+
+            while True:
+                live.stop()
+                try:
+                    prompt = input("  > ")
+                except (EOFError, KeyboardInterrupt):
+                    break
+
+                if prompt.strip().lower() in ("quit", "exit", "q"):
+                    break
+
+                if not prompt.strip():
+                    live.start()
+                    continue
+
+                live.start()
+
+                # Clear previous and show new prompt
                 dashboard.clear_current()
+                dashboard.update_prompt(prompt.strip())
+                live.update(dashboard.render())
+                time.sleep(step_delay)
+
+                # Run through the full pipeline (live classification + policy + LLM)
+                interceptor.evaluate_request(prompt.strip())
                 live.update(dashboard.render())
 
-        # Final hold
-        time.sleep(FINAL_HOLD)
+        # Wait for presenter to exit
+        live.stop()
+        console.print()
+        _wait_or_auto(console, args.fast, "Press Enter to exit...")
 
 
 if __name__ == "__main__":
