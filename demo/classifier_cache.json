@@ -1,13 +1,13 @@
 {
-  "summarize the key findings from this week's eastern mediterranean naval intelligence briefing.": {
+  "summarize the key findings from navcent briefing 2024-east-med-0347, dated 14 march 2024, with emphasis on russian black sea fleet repositioning near the bosporus strait.": {
     "category": "summarization",
     "confidence": 0.82
   },
-  "translate this intercepted radio communication from farsi to english and flag any references to naval deployments.": {
+  "translate the following intercepted farsi transmission and flag any references to naval deployments: نیروی دریایی سپاه پاسداران سه فروند ناوشکن را در تنگه هرمز مستقر کرده است.": {
     "category": "translation",
     "confidence": 0.82
   },
-  "assess the current threat level posed by this submarine formation based on historical movement patterns and current positioning.": {
+  "assess the current threat level of a kilo-class submarine group operating in ao triton based on oni track data from the past 72 hours and historical movement patterns.": {
     "category": "threat_assessment",
     "confidence": 0.92
   },
