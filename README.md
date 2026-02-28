@@ -99,12 +99,12 @@ The MVP includes a Rich TUI dashboard processing six scenarios in real time — 
 │  │  Signatories: AI Provider ✓  Deploying Org ✓                  │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │  ┌─ Evaluation History ──────────────────────────────────────────┐  │
-│  │  TIME      DECISION  INTENT              RULE         AUDIT   │  │
-│  │  10:42:01  ● ALLOW   summarization       allow-anlys  STD    │  │
-│  │  10:42:15  ● ALLOW   translation         allow-anlys  STD    │  │
-│  │  10:43:01  ● ALLOW   missile_defense     allow-misl   ENH    │  │
-│  │  10:43:22  ● BLOCK   bulk_surveillance   block-surv   CRIT   │  │
-│  │  10:43:45  ● BLOCK   autonomous_target   block-auto   CRIT   │  │
+│  │  TIME      DECISION           INTENT              RULE               AUDIT     │  │
+│  │  10:42:01  ● ALLOW            summarization       allow-analysis     STANDARD  │  │
+│  │  10:42:15  ● ALLOW            translation         allow-analysis     STANDARD  │  │
+│  │  10:43:01  ● ALLOW            missile_defense     allow-missile-def  ENHANCED  │  │
+│  │  10:43:22  ● BLOCK            bulk_surveillance   block-surv         CRITICAL  │  │
+│  │  10:43:45  ● BLOCK            autonomous_target   block-auto-lethal  CRITICAL  │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │  ┌─ Alerts ──────────────────────────────────────────────────────┐  │
 │  │  ⚠ [10:43:22] CRITICAL: block-surveillance triggered          │  │
@@ -120,18 +120,27 @@ The MVP includes a Rich TUI dashboard processing six scenarios in real time — 
 ```bash
 git clone https://github.com/ericmann/firebreak.git
 cd firebreak
-pip install -e .
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
 
-# Run the demo (requires ANTHROPIC_API_KEY)
+# Set your Anthropic API key
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Run the demo (press Enter to advance between scenarios)
 firebreak-demo
+
+# Run with interactive proxy mode for live prompts
+firebreak-demo --interactive
 ```
 
 ### CLI Options
 
 ```
-firebreak-demo                  # Full demo with cached classifications
+firebreak-demo                  # Full demo, manual advance between scenarios
+firebreak-demo --interactive    # Enter live proxy mode after canned scenarios
 firebreak-demo --no-cache       # Force live API classification calls
-firebreak-demo --fast           # Reduced pauses for testing
+firebreak-demo --fast           # Auto-advance with short pauses (for testing)
 firebreak-demo --policy PATH    # Custom policy file
 firebreak-demo --scenarios PATH # Custom scenario file
 ```
