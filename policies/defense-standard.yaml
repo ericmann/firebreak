@@ -14,6 +14,7 @@ categories:
   - missile_defense
   - cyber_defense
   - bulk_surveillance
+  - warranted_surveillance
   - autonomous_targeting
   - pattern_of_life
 
@@ -56,6 +57,20 @@ rules:
       - "Defensive operations only"
       - "Own or allied infrastructure targets only"
     color: yellow
+
+  - id: allow-warranted-analysis
+    description: "Court-authorized surveillance — constrained allow"
+    match_categories:
+      - warranted_surveillance
+    decision: ALLOW_CONSTRAINED
+    audit: enhanced
+    requires_human: true
+    constraints:
+      - "Valid judicial warrant must be on file"
+      - "Scope limited to named subjects in warrant"
+      - "Results must be reviewed by legal counsel"
+    color: yellow
+    note: "Court-authorized. Requires warrant verification and legal review."
 
   - id: block-surveillance
     description: "Mass domestic surveillance — hard block"

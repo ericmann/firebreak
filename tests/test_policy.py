@@ -66,7 +66,7 @@ class TestLoadPolicy:
         assert policy.signatories["deploying_org"] == "DoD CDAO"
 
     def test_policy_categories(self, engine: PolicyEngine) -> None:
-        """All eight categories are loaded."""
+        """All nine categories are loaded."""
         policy = engine.policy
         assert policy is not None
         expected = [
@@ -76,15 +76,16 @@ class TestLoadPolicy:
             "missile_defense",
             "cyber_defense",
             "bulk_surveillance",
+            "warranted_surveillance",
             "autonomous_targeting",
             "pattern_of_life",
         ]
         assert policy.categories == expected
 
     def test_policy_rules_count(self, engine: PolicyEngine) -> None:
-        """Six rules are loaded from the YAML file."""
+        """Seven rules are loaded from the YAML file."""
         assert engine.policy is not None
-        assert len(engine.policy.rules) == 6
+        assert len(engine.policy.rules) == 7
 
     def test_load_stores_policy(self) -> None:
         """load() stores the policy on the engine instance."""
@@ -161,6 +162,22 @@ class TestRuleMatching:
         assert result.color == "yellow"
         assert "Defensive operations only" in result.constraints
         assert "Own or allied infrastructure targets only" in result.constraints
+
+    def test_warranted_surveillance_allows_constrained(
+        self, engine: PolicyEngine, make_classification
+    ) -> None:
+        """Warranted surveillance maps to allow-warranted-analysis."""
+        classification = make_classification("warranted_surveillance")
+        result = engine.evaluate("warranted_surveillance", classification)
+        assert result.decision == Decision.ALLOW_CONSTRAINED
+        assert result.matched_rule_id == "allow-warranted-analysis"
+        assert result.audit_level == AuditLevel.ENHANCED
+        assert result.color == "yellow"
+        assert "Valid judicial warrant must be on file" in result.constraints
+        expected_note = (
+            "Court-authorized. Requires warrant verification and legal review."
+        )
+        assert result.note == expected_note
 
     def test_bulk_surveillance_blocks(
         self, engine: PolicyEngine, make_classification
