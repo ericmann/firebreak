@@ -152,13 +152,52 @@ firebreak-demo --interactive
 firebreak-demo                  # Full demo, manual advance (press Enter)
 firebreak-demo --auto           # Auto-advance with pauses for screen recording
 firebreak-demo --fast           # Auto-advance with short pauses (for testing)
+firebreak-demo --server         # Start OpenAI-compatible proxy server with live TUI
+firebreak-demo --server --port 9000  # Custom port (default: 8080)
 firebreak-demo --interactive    # Enter live proxy mode after canned scenarios
 firebreak-demo --no-cache       # Force live API classification calls
 firebreak-demo --policy PATH    # Custom policy file
 firebreak-demo --scenarios PATH # Custom scenario file
 ```
 
-> `--auto` and `--fast` are mutually exclusive. Default mode waits for Enter between scenarios.
+> `--auto`, `--fast`, and `--server` are mutually exclusive. Default mode waits for Enter between scenarios.
+
+### Server Mode
+
+Start Firebreak as a persistent OpenAI-compatible proxy server:
+
+```bash
+firebreak-demo --server
+```
+
+The TUI dashboard runs in the foreground and updates live as requests arrive. The server listens on `http://localhost:8080/v1`.
+
+**Point any OpenAI-compatible client at it:**
+
+```bash
+# curl
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "firebreak-proxy", "messages": [{"role": "user", "content": "Summarize the latest threat briefing"}]}'
+
+# Python openai SDK
+import openai
+client = openai.OpenAI(base_url="http://localhost:8080/v1", api_key="unused")
+client.chat.completions.create(model="firebreak-proxy", messages=[...])
+
+# Cursor / other tools — set the base URL:
+OPENAI_API_BASE=http://localhost:8080/v1
+```
+
+**Allowed requests** return a standard chat completion response. **Blocked requests** return an OpenAI-format error (HTTP 400, `code: "content_policy_violation"`) with the matched rule ID and description.
+
+**Endpoints:**
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/v1/chat/completions` | POST | Proxy endpoint — classify, evaluate, forward or block |
+| `/v1/models` | GET | List available models |
+| `/health` | GET | Health check |
 
 ## Architecture
 
@@ -171,9 +210,11 @@ graph BT
     interceptor[interceptor.py<br/>Evaluation pipeline] --> policy
     interceptor --> classifier
     interceptor --> audit
+    server[server.py<br/>OpenAI-compatible proxy] --> interceptor
     dashboard[dashboard.py<br/>Rich TUI dashboard] --> models
-    demo[demo.py<br/>Demo runner] --> interceptor
+    demo[demo.py<br/>CLI entry point] --> interceptor
     demo --> dashboard
+    demo --> server
 ```
 
 **Key design decisions:**
