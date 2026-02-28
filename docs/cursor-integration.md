@@ -31,6 +31,8 @@ curl -s http://localhost:8080/v1/chat/completions \
 
 Expected: HTTP 200 with an OpenAI-format chat completion response. The TUI dashboard updates with the evaluation.
 
+![Allowed request — chat completion response](server-allow.png)
+
 Now send a **blocked** request:
 
 ```bash
@@ -54,6 +56,8 @@ Expected: HTTP 400 with an OpenAI error response:
   }
 }
 ```
+
+![Blocked request — policy violation error](server-block.png)
 
 Verify the health endpoint:
 
