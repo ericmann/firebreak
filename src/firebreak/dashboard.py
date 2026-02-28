@@ -68,7 +68,6 @@ class FirebreakDashboard:
         interceptor.on("prompt_received", self.update_prompt)
         interceptor.on("classified", self.update_classification)
         interceptor.on("evaluated", self.update_evaluation)
-        interceptor.on("blocked", self.update_evaluation)
         interceptor.on("alert", self._add_alert)
 
     def update_prompt(self, prompt: str) -> None:
@@ -160,10 +159,7 @@ class FirebreakDashboard:
         parts: list[str] = []
 
         if self.current_prompt:
-            prompt_display = self.current_prompt.strip()
-            if len(prompt_display) > 120:
-                prompt_display = prompt_display[:117] + "..."
-            parts.append(f"  > {prompt_display}")
+            parts.append(f"  > {self.current_prompt.strip()}")
         else:
             parts.append("  [dim]Waiting for next request...[/dim]")
 
@@ -205,7 +201,7 @@ class FirebreakDashboard:
         table.add_column("DECISION", width=18)
         table.add_column("INTENT", width=22)
         table.add_column("RULE", width=24)
-        table.add_column("AUDIT", width=8)
+        table.add_column("AUDIT", width=10)
 
         for ev in self.evaluation_history:
             ts = ev.classification.timestamp.strftime("%H:%M:%S")
@@ -216,7 +212,7 @@ class FirebreakDashboard:
                 Text.from_markup(f"{dot} [{color}]{ev.decision.value}[/{color}]"),
                 ev.classification.intent_category,
                 ev.matched_rule_id,
-                ev.audit_level.value.upper()[:4],
+                ev.audit_level.value.upper(),
             )
 
         return Panel(
