@@ -29,13 +29,14 @@ DECISION_DOTS = {
 
 
 class FirebreakDashboard:
-    """Four-panel TUI dashboard for policy evaluation display.
+    """Five-panel TUI dashboard for policy evaluation display.
 
     Panels:
     1. Policy info (top) — active policy metadata
     2. Current request (middle-top) — prompt, classification, decision
     3. Evaluation history (middle-bottom) — table of all evaluations
     4. Alerts (bottom) — critical alert notifications
+    5. Narration (footer) — scenario narration status bar
 
     Attributes:
         policy: The active deployment policy.
@@ -44,6 +45,7 @@ class FirebreakDashboard:
         current_prompt: The prompt currently being evaluated.
         current_classification: Classification of current prompt.
         current_evaluation: Evaluation of current prompt.
+        narration: Current narration text for the status bar.
     """
 
     def __init__(self, policy: Policy) -> None:
@@ -58,6 +60,8 @@ class FirebreakDashboard:
         self.current_prompt: str | None = None
         self.current_classification: ClassificationResult | None = None
         self.current_evaluation: EvaluationResult | None = None
+        self.narration: str | None = None
+        self._frame: int = 0
 
     def register_callbacks(self, interceptor: FirebreakInterceptor) -> None:
         """Subscribe to interceptor events for live updates.
@@ -120,24 +124,43 @@ class FirebreakDashboard:
         self.current_classification = None
         self.current_evaluation = None
 
+    def update_narration(self, text: str | None) -> None:
+        """Set the narration text shown in the status bar.
+
+        Args:
+            text: Narration text, or None to clear.
+        """
+        self.narration = text
+
+    def _dots(self) -> str:
+        """Return an animated ellipsis that cycles across render frames."""
+        return "." * ((self._frame % 3) + 1)
+
+    def __rich__(self) -> Layout:
+        """Allow Rich to use this object directly as a renderable."""
+        return self.render()
+
     def render(self) -> Layout:
         """Build and return the full dashboard layout.
 
         Returns:
-            A rich Layout with four panels.
+            A rich Layout with five panels.
         """
+        self._frame += 1
         layout = Layout()
         layout.split_column(
-            Layout(name="policy", size=5),
-            Layout(name="request", size=10),
+            Layout(name="policy", size=3),
+            Layout(name="request", size=7),
             Layout(name="history", ratio=1),
-            Layout(name="alerts", size=8),
+            Layout(name="alerts", size=4),
+            Layout(name="narration", size=3),
         )
 
         layout["policy"].update(self._render_policy_panel())
         layout["request"].update(self._render_request_panel())
         layout["history"].update(self._render_history_panel())
         layout["alerts"].update(self._render_alerts_panel())
+        layout["narration"].update(self._render_narration_panel())
 
         return layout
 
@@ -175,7 +198,8 @@ class FirebreakDashboard:
             )
         elif self.current_prompt:
             parts.append("")
-            parts.append("  [dim italic]Classifying...[/dim italic]")
+            dots = self._dots()
+            parts.append(f"  [dim italic]Classifying{dots}[/dim italic]")
 
         if self.current_evaluation:
             e = self.current_evaluation
@@ -188,7 +212,8 @@ class FirebreakDashboard:
             if e.note:
                 parts.append(f"  [dim italic]{e.note}[/dim italic]")
         elif self.current_classification:
-            parts.append("  [dim italic]Evaluating...[/dim italic]")
+            dots = self._dots()
+            parts.append(f"  [dim italic]Evaluating{dots}[/dim italic]")
 
         content = Text.from_markup("\n".join(parts))
         return Panel(
@@ -262,4 +287,16 @@ class FirebreakDashboard:
             content,
             title="[bold red]Alerts[/bold red]",
             border_style="red",
+        )
+
+    def _render_narration_panel(self) -> Panel:
+        """Render the narration status bar."""
+        if self.narration:
+            content = Text.from_markup(f"  {self.narration}")
+        else:
+            content = Text.from_markup("  [dim]Ready.[/dim]")
+        return Panel(
+            content,
+            title="[bold]Status[/bold]",
+            border_style="dim",
         )

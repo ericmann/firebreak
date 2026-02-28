@@ -6,7 +6,6 @@ import time
 import yaml
 from rich.console import Console
 from rich.live import Live
-from rich.text import Text
 
 from firebreak.audit import AuditLog
 from firebreak.classifier import ClassifierCache, IntentClassifier
@@ -22,6 +21,8 @@ DEFAULT_CACHE = "demo/classifier_cache.json"
 # Timing constants (seconds)
 STEP_DELAY = 1.5
 FAST_STEP_DELAY = 0.25
+AUTO_STEP_DELAY = 2.0
+AUTO_NARRATION_DELAY = 3.0
 
 
 def _parse_args() -> argparse.Namespace:
@@ -38,10 +39,16 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip the classifier cache, make live API calls",
     )
-    parser.add_argument(
+    speed_group = parser.add_mutually_exclusive_group()
+    speed_group.add_argument(
         "--fast",
         action="store_true",
         help="Auto-advance with short pauses (for testing)",
+    )
+    speed_group.add_argument(
+        "--auto",
+        action="store_true",
+        help="Auto-advance with pauses for screen recording",
     )
     parser.add_argument(
         "--interactive",
@@ -91,22 +98,32 @@ def _load_scenarios(path: str) -> list[DemoScenario]:
     return scenarios
 
 
-def _wait_or_auto(console: Console, fast: bool, message: str = "") -> None:
-    """Wait for Enter keypress, or auto-advance in fast mode.
+def _wait_or_auto(
+    dashboard: FirebreakDashboard,
+    live: Live,
+    *,
+    fast: bool,
+    auto: bool,
+) -> None:
+    """Wait for Enter keypress, or auto-advance in fast/auto mode.
 
     Args:
-        console: Rich console for output.
-        fast: If True, skip waiting and auto-advance.
-        message: Optional message to display before waiting.
+        dashboard: Dashboard instance (for narration updates).
+        live: The Rich Live display.
+        fast: If True, auto-advance with short pauses.
+        auto: If True, auto-advance with screen-recording pauses.
     """
     if fast:
         time.sleep(FAST_STEP_DELAY)
+    elif auto:
+        time.sleep(AUTO_NARRATION_DELAY)
     else:
-        prompt = message if message else "  Press Enter to continue..."
-        console.print(
-            Text.from_markup(f"  [dim italic]{prompt}[/dim italic]"),
-        )
+        prompt_text = "[dim italic]Press Enter to continue...[/dim italic]"
+        dashboard.update_narration(prompt_text)
+        live.update(dashboard)
+        live.stop()
         input()
+        live.start()
 
 
 def main() -> None:
@@ -114,7 +131,12 @@ def main() -> None:
     args = _parse_args()
     console = Console()
 
-    step_delay = FAST_STEP_DELAY if args.fast else STEP_DELAY
+    if args.fast:
+        step_delay = FAST_STEP_DELAY
+    elif args.auto:
+        step_delay = AUTO_STEP_DELAY
+    else:
+        step_delay = STEP_DELAY
 
     # Load policy
     engine = PolicyEngine()
@@ -146,53 +168,36 @@ def main() -> None:
     scenarios = _load_scenarios(args.scenarios)
 
     # Run the demo
-    console.print()
-    console.print(
-        Text.from_markup(
-            "[bold blue]FIREBREAK[/bold blue] — Policy-as-Code Enforcement Demo"
-        )
-    )
-    console.print()
-
     with Live(
-        dashboard.render(),
+        dashboard,
         console=console,
         refresh_per_second=4,
     ) as live:
         for i, scenario in enumerate(scenarios):
-            # Pause for presenter to narrate
-            live.stop()
-            console.print()
-            console.print(
-                Text.from_markup(
-                    f"  [bold]Scenario {i + 1}/{len(scenarios)}:[/bold]"
-                    f" {scenario.narration}"
-                )
+            # Show narration in the dashboard status bar
+            dashboard.update_narration(
+                f"[bold]Scenario {i + 1}/{len(scenarios)}:[/bold] {scenario.narration}"
             )
-            _wait_or_auto(console, args.fast, "Press Enter to run scenario...")
-            live.start()
+            live.update(dashboard)
+            _wait_or_auto(dashboard, live, fast=args.fast, auto=args.auto)
 
             # Show prompt on dashboard
+            dashboard.update_narration(None)
             dashboard.update_prompt(scenario.prompt)
-            live.update(dashboard.render())
+            live.update(dashboard)
             time.sleep(step_delay)
 
             # Run through the interceptor pipeline
             interceptor.evaluate_request(scenario.prompt)
-            live.update(dashboard.render())
+            live.update(dashboard)
 
         # Interactive proxy mode
         if args.interactive:
-            live.stop()
-            console.print()
-            console.print(
-                Text.from_markup(
-                    "\n  [bold blue]INTERACTIVE MODE[/bold blue]"
-                    " — Type a prompt to evaluate through the policy proxy."
-                    "\n  [dim]Type 'quit' or 'exit' to end.[/dim]\n"
-                )
+            dashboard.update_narration(
+                "[bold blue]INTERACTIVE MODE[/bold blue]"
+                " — Type a prompt to evaluate. Type 'quit' to end."
             )
-            live.start()
+            live.update(dashboard)
 
             while True:
                 live.stop()
@@ -213,17 +218,19 @@ def main() -> None:
                 # Clear previous and show new prompt
                 dashboard.clear_current()
                 dashboard.update_prompt(prompt.strip())
-                live.update(dashboard.render())
+                live.update(dashboard)
                 time.sleep(step_delay)
 
-                # Run through the full pipeline (live classification + policy + LLM)
+                # Run through the full pipeline
                 interceptor.evaluate_request(prompt.strip())
-                live.update(dashboard.render())
+                live.update(dashboard)
 
         # Wait for presenter to exit
-        live.stop()
-        console.print()
-        _wait_or_auto(console, args.fast, "Press Enter to exit...")
+        dashboard.update_narration(
+            "[dim italic]Demo complete. Press Enter to exit...[/dim italic]"
+        )
+        live.update(dashboard)
+        _wait_or_auto(dashboard, live, fast=args.fast, auto=args.auto)
 
 
 if __name__ == "__main__":
