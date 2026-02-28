@@ -120,8 +120,10 @@ class FirebreakInterceptor:
             self._emit("response", evaluation)
         else:
             self._emit("blocked", evaluation)
-            for target in evaluation.alerts:
-                self._emit("alert", {"target": target, "evaluation": evaluation})
+
+        # Emit alerts for any decision that has them
+        for target in evaluation.alerts:
+            self._emit("alert", {"target": target, "evaluation": evaluation})
 
         # 8. Log to audit
         self.audit_log.log(prompt, classification, evaluation)
