@@ -1,6 +1,7 @@
 """Demo runner — main entry point for the Firebreak demonstration."""
 
 import argparse
+import threading
 import time
 
 import yaml
@@ -39,16 +40,27 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip the classifier cache, make live API calls",
     )
-    speed_group = parser.add_mutually_exclusive_group()
-    speed_group.add_argument(
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
         "--fast",
         action="store_true",
         help="Auto-advance with short pauses (for testing)",
     )
-    speed_group.add_argument(
+    mode_group.add_argument(
         "--auto",
         action="store_true",
         help="Auto-advance with pauses for screen recording",
+    )
+    mode_group.add_argument(
+        "--server",
+        action="store_true",
+        help="Start as an OpenAI-compatible proxy server with live TUI",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Server listen port (default: 8080)",
     )
     parser.add_argument(
         "--interactive",
@@ -126,17 +138,62 @@ def _wait_or_auto(
         live.start()
 
 
+def _run_server(
+    args: argparse.Namespace,
+    console: Console,
+    interceptor: FirebreakInterceptor,
+    dashboard: FirebreakDashboard,
+) -> None:
+    """Start the proxy server with a live TUI dashboard.
+
+    Args:
+        args: Parsed CLI arguments (needs .port).
+        console: Rich console for output.
+        interceptor: The configured interceptor pipeline.
+        dashboard: The dashboard instance.
+    """
+    import uvicorn
+
+    from firebreak.server import create_app
+
+    with Live(
+        dashboard,
+        console=console,
+        refresh_per_second=4,
+    ) as live:
+        app = create_app(interceptor, dashboard, live)
+
+        dashboard.update_narration(
+            f"[bold green]Server listening on"
+            f" http://localhost:{args.port}[/bold green]"
+            f" — Ctrl+C to stop"
+        )
+        live.update(dashboard)
+
+        server = uvicorn.Server(
+            uvicorn.Config(
+                app,
+                host="127.0.0.1",
+                port=args.port,
+                log_level="warning",
+            )
+        )
+
+        thread = threading.Thread(target=server.run, daemon=True)
+        thread.start()
+
+        try:
+            while thread.is_alive():
+                time.sleep(0.25)
+        except KeyboardInterrupt:
+            server.should_exit = True
+            thread.join(timeout=5)
+
+
 def main() -> None:
     """Run the Firebreak demo."""
     args = _parse_args()
     console = Console()
-
-    if args.fast:
-        step_delay = FAST_STEP_DELAY
-    elif args.auto:
-        step_delay = AUTO_STEP_DELAY
-    else:
-        step_delay = STEP_DELAY
 
     # Load policy
     engine = PolicyEngine()
@@ -163,6 +220,19 @@ def main() -> None:
     # Initialize dashboard
     dashboard = FirebreakDashboard(policy)
     dashboard.register_callbacks(interceptor)
+
+    # Server mode — start HTTP proxy and show live TUI
+    if args.server:
+        _run_server(args, console, interceptor, dashboard)
+        return
+
+    # Demo mode — step delay selection
+    if args.fast:
+        step_delay = FAST_STEP_DELAY
+    elif args.auto:
+        step_delay = AUTO_STEP_DELAY
+    else:
+        step_delay = STEP_DELAY
 
     # Load scenarios
     scenarios = _load_scenarios(args.scenarios)
