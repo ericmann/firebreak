@@ -176,6 +176,18 @@ Allowed requests return standard chat completion responses. Blocked requests ret
 | `/v1/models` | GET | List available models |
 | `/health` | GET | Health check |
 
+**Allowed request** — intelligence summarization passes through, returns a standard chat completion:
+
+<p align="center">
+  <img src="docs/server-allow.png" alt="Allowed request — chat completion response" width="720" />
+</p>
+
+**Blocked request** — mass surveillance prompt is rejected at the proxy, never reaches the LLM:
+
+<p align="center">
+  <img src="docs/server-block.png" alt="Blocked request — policy violation error" width="720" />
+</p>
+
 > **Connecting Cursor IDE?** See the full [Cursor + ngrok integration guide](docs/cursor-integration.md) for step-by-step setup.
 
 ## Architecture
